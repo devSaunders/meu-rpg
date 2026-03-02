@@ -64,7 +64,6 @@ class Heroi(Personagem):
             self.cooldown = 3
             return dano, True
 
-
     def atacar(self, alvo):
         dano = self.calcular_dano_base()
         dano_critico = False

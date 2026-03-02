@@ -1,10 +1,10 @@
 from personagens import Heroi, Monstro, Orc
-from combate import batalha
+from combate import iniciar_batalha, passo_batalha
 
 def recompensas(heroi): #dando recompensas para o heroi pos turno
     heroi.cooldown = 0
     print("Seu cooldown foi resetado!")
-    cura = int(heroi.vida_max * 0.2)
+    cura = int(heroi.vida_max * 0.4)
     antes = heroi.vida
     heroi.vida = heroi.vida + cura
     if heroi.vida > heroi.vida_max:
@@ -19,9 +19,30 @@ def main():
     print("-" * 25)
     inimigos = [goblin, orc]
     p1 = Heroi(nome, 100, 10)
+    
     for inimigo in inimigos: 
         print(f"Um {inimigo.nome} apareceu!!")
-        batalha(p1, inimigo)
+        #batalha(p1, inimigo)
+        
+        state = iniciar_batalha(p1, inimigo)
+        while not state["acabou"]:
+            print("""1 - atacar
+                    2 - curar
+                    3 - defender
+                    4 - especial""")
+            acao = input("escolha uma acao: ")
+            if acao == "1":
+                acao = "atacar"
+            elif acao == "2":
+                acao = "curar"
+            elif acao == "3":
+                acao = "defender"
+            elif acao == "4":
+                acao = "ataque especial"
+            resultado = passo_batalha(state, acao)
+            for msg in resultado["mensagens"]:
+                print(msg)
+        
         if not p1.esta_vivo():
             break
         else: 

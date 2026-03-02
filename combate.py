@@ -5,64 +5,141 @@ def batalha(heroi, inimigo):
             heroi.cooldown -= 1
         print(heroi.status())
         print(inimigo.status())
-        print("-" * 25)
         menu = input("""O que voce deseja fazer agora? 
         1. Atacar 
         2. Curar
         3. Defender
         4. Ataque especial """)
-        print("-" * 25)
         
         while menu != "1" and menu != "2" and menu != "3" and menu != "4": 
             print("Opcao invalida!")
             menu = input("O que voce deseja fazer? ")
-            print("-" * 25)
 
         if menu == "1":
-            #Heroi dando dano no Inimigo
-            dano_heroi, critico_heroi = heroi.atacar(inimigo)
-            print(f"Voce atacou o {inimigo.nome}!")
-            if critico_heroi:
-                print("DANO CRITICO")
-            print(dano_heroi) 
-            print(inimigo.status()) 
-            print("-" * 25)
-
+            resultado = turno_heroi(heroi, inimigo, "atacar")
+            for msg in resultado["mensagens"]:
+                print(msg)
+            
         elif menu == "2":
-            #Heroi se curando
-            cura = heroi.curar()
-            print(f"Voce curou {cura} de vida")    
-            print(heroi.status())
-            print("-" * 25)
+            resultado = turno_heroi(heroi, inimigo, "curar")
+            for msg in resultado["mensagens"]:
+                print(msg)
 
         elif menu == "3":
-            #Heroi defendendo
-            heroi.defender()
-            print(f"Voce se denfendeu do {inimigo.nome}!")
-            print(heroi.status())
-            print("-" * 25)
-        
+            resultado = turno_heroi(heroi, inimigo, "defender")
+            for msg in resultado["mensagens"]:
+                print(msg) 
+
         elif menu == "4":
-            #Heroi dando ataque especial
-            dano, usou = heroi.ataque_especial(inimigo)
-            if usou:
-                print("voce usou seu ataque especial")
-                print(dano)  
-                print(inimigo.status())
-                print("-" * 25)
-            else:
-                print(f"Habilidade em cooldown: {heroi.cooldown}")  
-                continue
-            
+            resultado = turno_heroi(heroi, inimigo, "ataque especial")
+            for msg in resultado["mensagens"]:
+                print(msg)
+    
+        if resultado["inimigo_morreu"]:
+            break
+        if not resultado["turno_consumido"]:
+            continue
+
         #Monstro dando dano no Heroi
-        if not inimigo.esta_vivo():
-            print(f"Voce derrotou o {inimigo.nome}!!")
+        resultado = turno_inimigo(heroi, inimigo)
+        for msg in resultado["mensagens"]:
+            print(msg)
+        if resultado["heroi_morreu"]:
             break
-        dano_monstro, critico_monstro = inimigo.atacar(heroi)
-        print(f"O {inimigo.nome} atacou voce!")
-        print(dano_monstro)
-        print(heroi.status())
-        print("-" * 25)
-        if not heroi.esta_vivo():
-            print("Voce foi derrotado! fim de jogo.")
-            break
+
+def turno_heroi(heroi, inimigo, acao):
+    mensagens = []
+    turno_consumido = True
+    if acao == "atacar":
+        dano, critico = heroi.atacar(inimigo)
+        mensagens.append("voce atacou!")
+        mensagens.append(f"voce deu {dano} de dano no inimigo!")
+        if critico:
+            mensagens.append("DANO CRITICO")
+    
+    elif acao == "curar":
+        vida_max = heroi.vida_max
+        vida_antes = heroi.vida
+        cura = int(heroi.vida_max * 0.2)
+        heroi.vida += cura
+        if heroi.vida > vida_max:
+            heroi.vida = vida_max
+        cura_total  = heroi.vida - vida_antes    
+        mensagens.append(f"Voce curou {cura_total} pontos de vida")
+        mensagens.append(f"HP: {heroi.vida}/{heroi.vida_max}")
+        turno_consumido = True
+
+    elif acao == "defender":
+        heroi.defendendo = True 
+        mensagens.append("Voce defendeu!")
+    
+    elif acao == "ataque especial":
+        if heroi.cooldown > 0:
+            mensagens.append(f"Faltam {heroi.cooldown} turnos para o Ataque Especial.")
+            turno_consumido = False
+        else:
+
+            dano = heroi.ataque_especial(inimigo)
+            mensagens.append("Voce usou seu ataque especial!")
+            mensagens.append(f"Voce deu {dano} de dano!")
+
+    else: 
+        mensagens.append("Acao invalida!")
+        turno_consumido = False
+    
+    if turno_consumido:
+        heroi.cooldown -= 1
+    
+    return {
+        "mensagens": mensagens,
+        "turno_consumido": turno_consumido,
+        "inimigo_morreu": not inimigo.esta_vivo()
+    }
+    
+def turno_inimigo(heroi, inimigo):
+    
+    mensagens = []
+    dano = inimigo.atacar(heroi)
+    mensagens.append(f"o {inimigo.nome} atacou voce!")
+    
+    return{
+        "mensagens": mensagens, 
+        "heroi_morreu": not heroi.esta_vivo()
+    }
+    
+def iniciar_batalha(heroi, inimigo):
+    return {
+        "heroi": heroi,
+        "inimigo": inimigo,
+        "acabou": False,
+        "vencedor": None   
+    }
+    
+def passo_batalha(state, acao):
+    mensagens = []
+    turno_consumido = False
+    if state["acabou"]:
+        mensagens.append("A batalha acabou")
+    else:
+        heroi = state["heroi"]
+        inimigo = state["inimigo"]
+        r_heroi = turno_heroi(heroi, inimigo, acao) #isso retorna a dict
+        mensagens.extend(r_heroi["mensagens"])
+        turno_consumido = r_heroi["turno_consumido"]
+        if r_heroi["inimigo_morreu"]:
+            state["acabou"] = True
+            state["vencedor"] = "heroi"
+        if (not state["acabou"]) and turno_consumido:
+            r_inimigo = turno_inimigo(heroi, inimigo)
+            mensagens.extend(r_inimigo["mensagens"])
+            if r_inimigo["heroi_morreu"]:
+                state["acabou"] = True
+                state["vencedor"] = "inimigo"                
+     
+
+    return {
+        "mensagens": mensagens,
+        "turno_consumido": turno_consumido,
+        "acabou": (state["acabou"]),
+        "vencedor": (state["vencedor"])
+    }
