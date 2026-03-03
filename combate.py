@@ -78,8 +78,7 @@ def turno_heroi(heroi, inimigo, acao):
             mensagens.append(f"Faltam {heroi.cooldown} turnos para o Ataque Especial.")
             turno_consumido = False
         else:
-
-            dano = heroi.ataque_especial(inimigo)
+            dano, variavel = heroi.ataque_especial(inimigo)
             mensagens.append("Voce usou seu ataque especial!")
             mensagens.append(f"Voce deu {dano} de dano!")
 
@@ -99,8 +98,9 @@ def turno_heroi(heroi, inimigo, acao):
 def turno_inimigo(heroi, inimigo):
     
     mensagens = []
-    dano = inimigo.atacar(heroi)
+    dano, critico = inimigo.atacar(heroi)
     mensagens.append(f"o {inimigo.nome} atacou voce!")
+    mensagens.append(f"o {inimigo.nome} deu {dano} de dano em voce!")
     
     return{
         "mensagens": mensagens, 
